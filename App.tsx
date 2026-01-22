@@ -1,15 +1,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route } from 'react-router-dom';
-import Layout from './components/Layout';
-import Home from './pages/Home';
-import Articles from './pages/Articles';
-import Library from './pages/Library';
-import Contact from './pages/Contact';
-import Admin from './pages/Admin';
-import { storageService } from './services/storageService';
-import { ContentType, LegalContent } from './types';
-import ContentCard from './components/ContentCard';
+import Layout from './components/Layout.tsx';
+import Home from './pages/Home.tsx';
+import Articles from './pages/Articles.tsx';
+import Library from './pages/Library.tsx';
+import Contact from './pages/Contact.tsx';
+import Admin from './pages/Admin.tsx';
+import { storageService } from './services/storageService.ts';
+import { ContentType, LegalContent } from './types.ts';
+import ContentCard from './components/ContentCard.tsx';
 import { X, Calendar, User, Tag, Scale, Target, Compass, ShieldCheck, ArrowLeft } from 'lucide-react';
 
 const DetailModal: React.FC<{ item: LegalContent | null, onClose: () => void }> = ({ item, onClose }) => {
@@ -102,7 +102,6 @@ const About = () => {
   const settings = storageService.getSettings();
   return (
     <div className="space-y-12 animate-in fade-in duration-700 pb-20 font-['Cairo'] text-right">
-      {/* Header Section - Scale down text */}
       <div className="bg-white p-8 md:p-20 rounded-[40px] shadow-sm border-2 border-gray-100 text-center space-y-8 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-3 bg-[#b4924c]"></div>
         <div className="w-24 h-24 bg-blue-50 text-[#1e3a8a] rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-white shadow-xl">
@@ -119,7 +118,6 @@ const About = () => {
         </div>
       </div>
 
-      {/* Vision & Mission Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="bg-white p-10 md:p-12 rounded-[40px] shadow-lg border-2 border-gray-100 relative overflow-hidden group hover:shadow-xl transition-all">
           <div className="absolute top-0 right-0 w-3 h-full bg-[#b4924c]"></div>
@@ -144,7 +142,6 @@ const About = () => {
         </div>
       </div>
 
-      {/* Commitment */}
       <div className="bg-[#1e3a8a] text-white p-10 md:p-16 rounded-[40px] shadow-2xl relative overflow-hidden text-center md:text-right border-b-[10px] border-[#b4924c]">
         <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-12">
           <div className="space-y-6 max-w-3xl">

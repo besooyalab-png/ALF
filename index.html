@@ -23,20 +23,22 @@
         -webkit-tap-highlight-color: transparent;
         line-height: 1.6;
         overflow-x: hidden;
-        /* منع النسخ وتحديد النصوص */
+        /* منع النسخ وتحديد النصوص بشكل كامل */
         -webkit-user-select: none;
         -moz-user-select: none;
         -ms-user-select: none;
         user-select: none;
       }
-      /* تحسين النصوص لتكون عريضة بشكل افتراضي للمنصات القانونية */
+      /* منع سحب الصور */
+      img {
+        -webkit-user-drag: none;
+      }
       h1, h2, h3, h4, h5, h6 {
         font-weight: 900 !important;
       }
       p, span, div {
         font-weight: 700;
       }
-      /* تحسين شكل السكرول بار */
       ::-webkit-scrollbar {
         width: 8px;
       }
@@ -47,7 +49,6 @@
         background: var(--primary);
         border-radius: 20px;
       }
-      /* أنيميشن دخول الصفحات */
       .page-transition {
         animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
       }
@@ -55,11 +56,14 @@
         from { opacity: 0; transform: translateY(20px); }
         to { opacity: 1; transform: translateY(0); }
       }
-      /* تحسين مظهر الأزرار على الموبايل */
       button, a {
         touch-action: manipulation;
       }
     </style>
+    <script>
+      // تعريف متغير process لمنع تعطل التطبيق في البيئات التي لا تحتوي عليه
+      window.process = { env: { API_KEY: "" } };
+    </script>
   <script type="importmap">
 {
   "imports": {
@@ -74,7 +78,7 @@
 </script>
 <link rel="stylesheet" href="/index.css">
 </head>
-  <body>
+  <body oncontextmenu="return false;">
     <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>

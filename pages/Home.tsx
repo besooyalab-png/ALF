@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { storageService } from '../services/storageService';
-import ContentCard from '../components/ContentCard';
-import { Scale, X, Calendar, User, ArrowLeftCircle, MessageCircle } from 'lucide-react';
-import { LegalContent } from '../types';
+import { storageService } from '../services/storageService.ts';
+import ContentCard from '../components/ContentCard.tsx';
+import { Scale, X, Calendar, User, ArrowLeftCircle } from 'lucide-react';
+import { LegalContent } from '../types.ts';
 
 const HomeDetailModal: React.FC<{ item: LegalContent | null, onClose: () => void }> = ({ item, onClose }) => {
   if (!item) return null;
@@ -15,7 +15,7 @@ const HomeDetailModal: React.FC<{ item: LegalContent | null, onClose: () => void
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
           <button onClick={onClose} className="absolute top-4 left-4 bg-white/20 hover:bg-white/40 text-white p-3 rounded-full backdrop-blur-md transition-all border border-white/30 z-20"><X size={24} /></button>
           <div className="absolute bottom-6 right-6 left-6 text-white z-10">
-            <span className="bg-[#b4924c] text-white px-4 py-1.5 rounded-lg text-xs font-black mb-3 inline-block uppercase tracking-widest shadow-xl">{item.category}</span>
+            <span className="bg-[#b4924c] text-white px-4 py-1.5 rounded-lg text-xs font-black mb-3 inline-block uppercase shadow-xl">{item.category}</span>
             <h2 className="text-xl md:text-3xl font-black leading-tight drop-shadow-2xl">{item.title}</h2>
           </div>
         </div>
@@ -57,13 +57,12 @@ const Home: React.FC = () => {
 
   return (
     <div className="space-y-12 animate-in fade-in duration-700 pb-20 overflow-x-hidden">
-      {/* Hero Section - Optimized Text Sizes */}
       <section className="relative bg-[#1e3a8a] rounded-[30px] md:rounded-[50px] p-8 md:p-20 text-white overflow-hidden shadow-2xl text-center border-b-[8px] border-[#b4924c]">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-3xl"></div>
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#b4924c]/10 rounded-full -ml-32 -mb-32 blur-3xl"></div>
         
         <div className="relative z-10 max-w-4xl mx-auto flex flex-col items-center">
-          <h1 className="text-2xl md:text-4xl lg:text-5xl font-black mb-10 md:mb-14 leading-[1.5] text-white drop-shadow-2xl whitespace-pre-line px-2">
+          <h1 className="text-2xl md:text-4xl font-black mb-10 md:mb-14 leading-[1.5] text-white drop-shadow-2xl whitespace-pre-line px-2">
             {settings.heroSubtitle}
           </h1>
           
@@ -78,14 +77,13 @@ const Home: React.FC = () => {
         </div>
       </section>
 
-      {/* Latest Content - Optimized Headers */}
       <section ref={latestContentRef} className="scroll-mt-10 px-2 md:px-0">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-6 border-b-2 border-gray-100 pb-8">
           <div className="border-r-[6px] border-[#b4924c] pr-6">
             <h2 className="text-2xl md:text-4xl font-black text-[#1e3a8a]">أحدث الإصدارات</h2>
             <p className="text-gray-500 font-bold mt-2 text-lg md:text-xl">رؤية قانونية عصرية</p>
           </div>
-          <div className="text-[#b4924c] font-black text-sm md:text-base uppercase tracking-widest flex items-center gap-3">
+          <div className="text-[#b4924c] font-black text-sm md:text-base flex items-center gap-3">
              <div className="w-8 h-1 bg-[#b4924c]"></div> تحديثات جديدة
           </div>
         </div>

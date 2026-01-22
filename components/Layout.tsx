@@ -39,7 +39,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col md:flex-row font-['Cairo'] overflow-x-hidden">
-      {/* Mobile Header - More Prominent */}
+      {/* Mobile Header */}
       <div className="md:hidden bg-[#1e3a8a] text-white px-4 py-4 sticky top-0 z-50 shadow-2xl border-b-4 border-[#b4924c] h-24 flex items-center justify-between">
         <button 
           onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
@@ -61,7 +61,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         </div>
       </div>
 
-      {/* Sidebar - Enhanced Typography */}
+      {/* Sidebar */}
       <aside className={`
         fixed inset-y-0 right-0 z-[60] w-80 bg-[#1e3a8a] text-white transform transition-transform duration-500 ease-in-out
         md:relative md:translate-x-0 overflow-y-auto shadow-2xl border-l-4 border-[#b4924c]
@@ -75,7 +75,6 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
              <Scale size={64} className="text-[#1e3a8a]" />
           </div>
           <div className="font-black text-white text-2xl tracking-tight leading-tight">{settings.appName}</div>
-          {/* تم حذف العبارة الإنجليزية من هنا */}
         </div>
 
         <nav className="mt-8 px-6 pb-20 space-y-3">
@@ -100,7 +99,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         </nav>
       </aside>
 
-      {/* Main Content Area - Better Padding for Mobile */}
+      {/* Main Content Area */}
       <main className="flex-1 p-5 md:p-12 lg:p-16 overflow-y-auto w-full max-w-full mx-auto">
         <div className="page-transition max-w-7xl mx-auto">
           {children}
