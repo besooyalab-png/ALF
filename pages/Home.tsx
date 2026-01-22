@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { storageService } from '../services/storageService.ts';
-import { firestoreService } from '../services/firestoreService.ts';
 import ContentCard from '../components/ContentCard.tsx';
 import { Scale, X, Calendar, User, ArrowLeftCircle } from 'lucide-react';
 import { LegalContent } from '../types.ts';
@@ -48,13 +47,8 @@ const Home: React.FC = () => {
   const latestContentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // الاستماع للتحديثات المباشرة من Firestore
-    const unsubscribe = firestoreService.listenToPosts((posts) => {
-      setRecentData(posts.slice(0, 12)); // عرض أحدث 12 منشور
-    });
-
-    // إيقاف الاستماع عند إلغاء التثبيت
-    return () => unsubscribe();
+    const content = storageService.getContent();
+    setRecentData(content.slice(0, 12));
   }, []);
 
   const scrollToLatest = () => {
@@ -66,19 +60,19 @@ const Home: React.FC = () => {
       <section className="relative bg-[#1e3a8a] rounded-[30px] md:rounded-[50px] p-8 md:p-20 text-white overflow-hidden shadow-2xl text-center border-b-[8px] border-[#b4924c]">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-3xl"></div>
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#b4924c]/10 rounded-full -ml-32 -mb-32 blur-3xl"></div>
-
+        
         <div className="relative z-10 max-w-4xl mx-auto flex flex-col items-center">
           <h1 className="text-2xl md:text-4xl font-black mb-10 md:mb-14 leading-[1.5] text-white drop-shadow-2xl whitespace-pre-line px-2">
             {settings.heroSubtitle}
           </h1>
-
+          
           <div className="flex justify-center w-full">
-            <button
-              onClick={scrollToLatest}
-              className="bg-[#b4924c] hover:bg-white hover:text-[#1e3a8a] text-white px-8 md:px-14 py-4 md:py-6 rounded-2xl font-black text-xl md:text-2xl shadow-xl transition-all active:scale-95 flex items-center justify-center gap-4 group"
-            >
-              تصفح المكتبة <ArrowLeftCircle size={24} className="group-hover:translate-x-[-5px] transition-transform" />
-            </button>
+             <button 
+               onClick={scrollToLatest}
+               className="bg-[#b4924c] hover:bg-white hover:text-[#1e3a8a] text-white px-8 md:px-14 py-4 md:py-6 rounded-2xl font-black text-xl md:text-2xl shadow-xl transition-all active:scale-95 flex items-center justify-center gap-4 group"
+             >
+               تصفح المكتبة <ArrowLeftCircle size={24} className="group-hover:translate-x-[-5px] transition-transform" />
+             </button>
           </div>
         </div>
       </section>
@@ -90,10 +84,10 @@ const Home: React.FC = () => {
             <p className="text-gray-500 font-bold mt-2 text-lg md:text-xl">رؤية قانونية عصرية</p>
           </div>
           <div className="text-[#b4924c] font-black text-sm md:text-base flex items-center gap-3">
-            <div className="w-8 h-1 bg-[#b4924c]"></div> تحديثات جديدة
+             <div className="w-8 h-1 bg-[#b4924c]"></div> تحديثات جديدة
           </div>
         </div>
-
+        
         {recentData.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
             {recentData.map(item => (
@@ -103,7 +97,7 @@ const Home: React.FC = () => {
         ) : (
           <div className="text-center py-20 md:py-40 bg-white rounded-[40px] border-4 border-dashed border-gray-100 shadow-inner px-8">
             <div className="bg-blue-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 text-blue-100">
-              <Scale size={48} />
+               <Scale size={48} />
             </div>
             <p className="text-xl md:text-2xl font-black text-gray-300 italic">المحتوى قيد التجهيز من قبل خبرائنا...</p>
           </div>

@@ -1,11 +1,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import {
+import { 
   Plus, Trash2, Edit3, X, LogIn, Upload, Image as ImageIcon,
-  AlertTriangle, CheckCircle, ArrowRight, Save, Download, Loader
+  AlertTriangle, CheckCircle, ArrowRight, Save, Download
 } from 'lucide-react';
 import { storageService, PlatformSettings } from '../services/storageService';
-import { firestoreService } from '../services/firestoreService';
 import { LegalContent, ContentType } from '../types';
 import { Link } from 'react-router-dom';
 
@@ -13,14 +12,13 @@ const Admin: React.FC = () => {
   const [isAuth, setIsAuth] = useState(false);
   const [password, setPassword] = useState('');
   const [activeTab, setActiveTab] = useState<'content' | 'settings'>('content');
-
+  
   const [data, setData] = useState<LegalContent[]>([]);
   const [settings, setSettings] = useState<PlatformSettings>(storageService.getSettings());
   const [editingItem, setEditingItem] = useState<Partial<LegalContent> | null>(null);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [showToast, setShowToast] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -30,12 +28,7 @@ const Admin: React.FC = () => {
   }, [isAuth]);
 
   const loadData = () => {
-    // الاستماع للتحديثات المباشرة من Firestore
-    const unsubscribe = firestoreService.listenToPosts((posts) => {
-      setData(posts);
-    });
-    // إيقاف الاستماع عند إلغاء التثبيت
-    return () => unsubscribe();
+    setData(storageService.getContent());
   };
 
   const handleLogin = (e: React.FormEvent) => {
@@ -63,63 +56,40 @@ const Admin: React.FC = () => {
     }
   };
 
-  const handleSaveContent = async () => {
-    if (!editingItem || !editingItem.title) return;
-
-    setIsLoading(true);
-    try {
-      const postData = {
-        ...editingItem,
-        date: editingItem.date || new Date().toLocaleDateString('ar-EG'),
-        author: editingItem.author || 'الإدارة',
-        category: editingItem.category || 'عام'
-      };
-
-      // إذا كان المنشور موجوداً (له id)، نقوم بالتحديث
-      if (editingItem.id && data.some(item => item.id === editingItem.id)) {
-        const result = await firestoreService.updatePost(editingItem.id, postData);
-        if (result.success) {
-          triggerToast('✅ تم تحديث المنشور بنجاح');
-        } else {
-          triggerToast('❌ فشل التحديث');
-        }
+  const handleSaveContent = () => {
+    if (editingItem && editingItem.title) {
+      const currentData = storageService.getContent();
+      let newData;
+      
+      const existsIndex = currentData.findIndex(i => i.id === editingItem.id);
+      if (existsIndex > -1) {
+        currentData[existsIndex] = editingItem as LegalContent;
+        newData = [...currentData];
       } else {
-        // منشور جديد
-        const result = await firestoreService.addPost(postData as Omit<LegalContent, 'id'>);
-        if (result.success) {
-          triggerToast('✅ تم نشر المنشور بنجاح - سيظهر للجميع الآن!');
-        } else {
-          triggerToast('❌ فشل النشر');
-        }
+        const newItem = {
+          ...editingItem,
+          id: editingItem.id || Date.now().toString(),
+          date: editingItem.date || new Date().toLocaleDateString('ar-EG'),
+          author: editingItem.author || 'الإدارة',
+          category: editingItem.category || 'عام'
+        } as LegalContent;
+        newData = [newItem, ...currentData];
       }
-
+      
+      storageService.saveContent(newData);
+      setData(newData);
       setEditingItem(null);
-    } catch (error) {
-      console.error('Error saving post:', error);
-      triggerToast('❌ حدث خطأ أثناء الحفظ');
-    } finally {
-      setIsLoading(false);
+      triggerToast('تم حفظ التغييرات محلياً');
     }
   };
 
-  const executeDelete = async () => {
+  const executeDelete = () => {
     if (!itemToDelete) return;
-
-    setIsLoading(true);
-    try {
-      const result = await firestoreService.deletePost(itemToDelete);
-      if (result.success) {
-        triggerToast('✅ تم حذف المنشور بنجاح');
-      } else {
-        triggerToast('❌ فشل الحذف');
-      }
-      setItemToDelete(null);
-    } catch (error) {
-      console.error('Error deleting post:', error);
-      triggerToast('❌ حدث خطأ أثناء الحذف');
-    } finally {
-      setIsLoading(false);
-    }
+    const updatedData = data.filter(item => item.id !== itemToDelete);
+    storageService.saveContent(updatedData);
+    setData(updatedData);
+    setItemToDelete(null);
+    triggerToast('تم الحذف بنجاح');
   };
 
   if (!isAuth) {
@@ -131,8 +101,8 @@ const Admin: React.FC = () => {
           </div>
           <h2 className="text-3xl font-black mb-8 text-black">لوحة التحكم</h2>
           <form onSubmit={handleLogin} className="space-y-6">
-            <input
-              type="password"
+            <input 
+              type="password" 
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="كلمة السر"
@@ -169,7 +139,7 @@ const Admin: React.FC = () => {
               <h1 className="text-3xl font-black text-[#1e3a8a]">إدارة المنشورات</h1>
               <p className="text-gray-400 font-bold mt-1">يمكنك إضافة الصور والمقالات وحذفها من هنا.</p>
             </div>
-            <button
+            <button 
               onClick={() => setEditingItem({
                 id: Date.now().toString(),
                 type: ContentType.ARTICLE,
@@ -207,11 +177,11 @@ const Admin: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
             <div className="space-y-3">
               <label className="text-lg font-black block">اسم المؤسسة (يظهر في الأعلى)</label>
-              <input type="text" className="w-full bg-gray-50 border border-gray-300 rounded-2xl p-5 text-black font-black outline-none" value={settings.appName} onChange={(e) => setSettings({ ...settings, appName: e.target.value })} />
+              <input type="text" className="w-full bg-gray-50 border border-gray-300 rounded-2xl p-5 text-black font-black outline-none" value={settings.appName} onChange={(e) => setSettings({...settings, appName: e.target.value})} />
             </div>
             <div className="space-y-3">
               <label className="text-lg font-black block">نص الترحيب الرئيسي</label>
-              <textarea rows={3} className="w-full bg-gray-50 border border-gray-300 rounded-2xl p-5 text-black font-black outline-none" value={settings.heroSubtitle} onChange={(e) => setSettings({ ...settings, heroSubtitle: e.target.value })} />
+              <textarea rows={3} className="w-full bg-gray-50 border border-gray-300 rounded-2xl p-5 text-black font-black outline-none" value={settings.heroSubtitle} onChange={(e) => setSettings({...settings, heroSubtitle: e.target.value})} />
             </div>
           </div>
           <button onClick={() => { storageService.saveSettings(settings); triggerToast('تم حفظ الإعدادات'); }} className="bg-[#1e3a8a] text-white px-12 py-5 rounded-2xl font-black shadow-xl hover:bg-blue-800 transition-all text-xl">حفظ التغييرات</button>
@@ -243,18 +213,18 @@ const Admin: React.FC = () => {
               <h2 className="text-2xl font-black text-[#1e3a8a]">إدارة المنشور</h2>
               <button onClick={() => setEditingItem(null)} className="p-2 bg-white rounded-full shadow-sm text-gray-400 hover:text-red-500"><X size={24} /></button>
             </div>
-
+            
             <div className="p-8 space-y-6 overflow-y-auto custom-scrollbar">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="font-black text-gray-700">عنوان المنشور</label>
-                  <input type="text" placeholder="العنوان..." value={editingItem.title} onChange={(e) => setEditingItem({ ...editingItem, title: e.target.value })} className="w-full bg-gray-50 border border-gray-300 rounded-2xl p-4 font-bold outline-none" />
+                  <input type="text" placeholder="العنوان..." value={editingItem.title} onChange={(e) => setEditingItem({...editingItem, title: e.target.value})} className="w-full bg-gray-50 border border-gray-300 rounded-2xl p-4 font-bold outline-none" />
                 </div>
                 <div className="space-y-2">
                   <label className="font-black text-gray-700">القسم</label>
-                  <select
-                    value={editingItem.type}
-                    onChange={(e) => setEditingItem({ ...editingItem, type: e.target.value as ContentType })}
+                  <select 
+                    value={editingItem.type} 
+                    onChange={(e) => setEditingItem({...editingItem, type: e.target.value as ContentType})}
                     className="w-full bg-gray-50 border border-gray-300 rounded-2xl p-4 font-bold outline-none"
                   >
                     <option value={ContentType.ARTICLE}>مقالة قانونية</option>
@@ -269,12 +239,12 @@ const Admin: React.FC = () => {
 
               <div className="space-y-2">
                 <label className="font-black text-gray-700">وصف قصير</label>
-                <textarea rows={2} value={editingItem.summary} onChange={(e) => setEditingItem({ ...editingItem, summary: e.target.value })} className="w-full bg-gray-50 border border-gray-300 rounded-2xl p-4 font-bold outline-none" />
+                <textarea rows={2} value={editingItem.summary} onChange={(e) => setEditingItem({...editingItem, summary: e.target.value})} className="w-full bg-gray-50 border border-gray-300 rounded-2xl p-4 font-bold outline-none" />
               </div>
 
               <div className="space-y-2">
                 <label className="font-black text-gray-700">المحتوى بالتفصيل</label>
-                <textarea rows={6} value={editingItem.content} onChange={(e) => setEditingItem({ ...editingItem, content: e.target.value })} className="w-full bg-gray-50 border border-gray-300 rounded-2xl p-4 font-bold outline-none" />
+                <textarea rows={6} value={editingItem.content} onChange={(e) => setEditingItem({...editingItem, content: e.target.value})} className="w-full bg-gray-50 border border-gray-300 rounded-2xl p-4 font-bold outline-none" />
               </div>
 
               <div className="space-y-4">
@@ -283,7 +253,7 @@ const Admin: React.FC = () => {
                   {editingItem.imageUrl && (
                     <img src={editingItem.imageUrl} className="w-24 h-24 rounded-2xl object-cover border" />
                   )}
-                  <button
+                  <button 
                     onClick={() => fileInputRef.current?.click()}
                     className="flex items-center gap-3 px-6 py-4 bg-white border-2 border-dashed border-gray-300 rounded-2xl font-black text-gray-500 hover:border-[#1e3a8a] transition-all"
                   >
@@ -295,14 +265,8 @@ const Admin: React.FC = () => {
             </div>
 
             <div className="p-6 bg-gray-50 border-t flex gap-4">
-              <button
-                onClick={handleSaveContent}
-                disabled={isLoading}
-                className="flex-1 bg-green-600 text-white py-4 rounded-2xl font-black shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isLoading ? <><Loader size={20} className="animate-spin" /> جاري الحفظ...</> : <><Save size={20} /> حفظ التعديل</>}
-              </button>
-              <button onClick={() => setEditingItem(null)} disabled={isLoading} className="px-10 bg-white text-gray-500 border border-gray-200 rounded-2xl font-black disabled:opacity-50">إلغاء</button>
+              <button onClick={handleSaveContent} className="flex-1 bg-green-600 text-white py-4 rounded-2xl font-black shadow-lg flex items-center justify-center gap-2"><Save size={20} /> حفظ التعديل</button>
+              <button onClick={() => setEditingItem(null)} className="px-10 bg-white text-gray-500 border border-gray-200 rounded-2xl font-black">إلغاء</button>
             </div>
           </div>
         </div>
