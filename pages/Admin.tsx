@@ -2,9 +2,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Plus, Trash2, Edit3, X, LogIn, Upload, Image as ImageIcon,
-  AlertTriangle, CheckCircle, ArrowRight, Save, Download
+  AlertTriangle, CheckCircle, ArrowRight, Save, Download, Loader
 } from 'lucide-react';
 import { storageService, PlatformSettings } from '../services/storageService';
+import { firestoreService } from '../services/firestoreService';
 import { LegalContent, ContentType } from '../types';
 import { Link } from 'react-router-dom';
 
@@ -18,6 +19,7 @@ const Admin: React.FC = () => {
   const [editingItem, setEditingItem] = useState<Partial<LegalContent> | null>(null);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   const [showToast, setShowToast] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -28,7 +30,12 @@ const Admin: React.FC = () => {
   }, [isAuth]);
 
   const loadData = () => {
-    setData(storageService.getContent());
+    // الاستماع للتحديثات المباشرة من Firestore
+    const unsubscribe = firestoreService.listenToPosts((posts) => {
+      setData(posts);
+    });
+    // إيقاف الاستماع عند إلغاء التثبيت
+    return () => unsubscribe();
   };
 
   const handleLogin = (e: React.FormEvent) => {
@@ -56,40 +63,63 @@ const Admin: React.FC = () => {
     }
   };
 
-  const handleSaveContent = () => {
-    if (editingItem && editingItem.title) {
-      const currentData = storageService.getContent();
-      let newData;
+  const handleSaveContent = async () => {
+    if (!editingItem || !editingItem.title) return;
 
-      const existsIndex = currentData.findIndex(i => i.id === editingItem.id);
-      if (existsIndex > -1) {
-        currentData[existsIndex] = editingItem as LegalContent;
-        newData = [...currentData];
+    setIsLoading(true);
+    try {
+      const postData = {
+        ...editingItem,
+        date: editingItem.date || new Date().toLocaleDateString('ar-EG'),
+        author: editingItem.author || 'الإدارة',
+        category: editingItem.category || 'عام'
+      };
+
+      // إذا كان المنشور موجوداً (له id)، نقوم بالتحديث
+      if (editingItem.id && data.some(item => item.id === editingItem.id)) {
+        const result = await firestoreService.updatePost(editingItem.id, postData);
+        if (result.success) {
+          triggerToast('✅ تم تحديث المنشور بنجاح');
+        } else {
+          triggerToast('❌ فشل التحديث');
+        }
       } else {
-        const newItem = {
-          ...editingItem,
-          id: editingItem.id || Date.now().toString(),
-          date: editingItem.date || new Date().toLocaleDateString('ar-EG'),
-          author: editingItem.author || 'الإدارة',
-          category: editingItem.category || 'عام'
-        } as LegalContent;
-        newData = [newItem, ...currentData];
+        // منشور جديد
+        const result = await firestoreService.addPost(postData as Omit<LegalContent, 'id'>);
+        if (result.success) {
+          triggerToast('✅ تم نشر المنشور بنجاح - سيظهر للجميع الآن!');
+        } else {
+          triggerToast('❌ فشل النشر');
+        }
       }
 
-      storageService.saveContent(newData);
-      setData(newData);
       setEditingItem(null);
-      triggerToast('تم حفظ التغييرات محلياً');
+    } catch (error) {
+      console.error('Error saving post:', error);
+      triggerToast('❌ حدث خطأ أثناء الحفظ');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const executeDelete = () => {
+  const executeDelete = async () => {
     if (!itemToDelete) return;
-    const updatedData = data.filter(item => item.id !== itemToDelete);
-    storageService.saveContent(updatedData);
-    setData(updatedData);
-    setItemToDelete(null);
-    triggerToast('تم الحذف بنجاح');
+
+    setIsLoading(true);
+    try {
+      const result = await firestoreService.deletePost(itemToDelete);
+      if (result.success) {
+        triggerToast('✅ تم حذف المنشور بنجاح');
+      } else {
+        triggerToast('❌ فشل الحذف');
+      }
+      setItemToDelete(null);
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      triggerToast('❌ حدث خطأ أثناء الحذف');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (!isAuth) {
@@ -172,37 +202,19 @@ const Admin: React.FC = () => {
       )}
 
       {activeTab === 'settings' && (
-        <div className="space-y-8">
-          <div className="bg-white p-10 rounded-[32px] shadow-sm border border-gray-100 space-y-10">
-            <h2 className="text-3xl font-black text-[#1e3a8a] border-b pb-6">هوية الموقع</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-              <div className="space-y-3">
-                <label className="text-lg font-black block">اسم المؤسسة (يظهر في الأعلى)</label>
-                <input type="text" className="w-full bg-gray-50 border border-gray-300 rounded-2xl p-5 text-black font-black outline-none" value={settings.appName} onChange={(e) => setSettings({ ...settings, appName: e.target.value })} />
-              </div>
-              <div className="space-y-3">
-                <label className="text-lg font-black block">نص الترحيب الرئيسي</label>
-                <textarea rows={3} className="w-full bg-gray-50 border border-gray-300 rounded-2xl p-5 text-black font-black outline-none" value={settings.heroSubtitle} onChange={(e) => setSettings({ ...settings, heroSubtitle: e.target.value })} />
-              </div>
+        <div className="bg-white p-10 rounded-[32px] shadow-sm border border-gray-100 space-y-10">
+          <h2 className="text-3xl font-black text-[#1e3a8a] border-b pb-6">هوية الموقع</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+            <div className="space-y-3">
+              <label className="text-lg font-black block">اسم المؤسسة (يظهر في الأعلى)</label>
+              <input type="text" className="w-full bg-gray-50 border border-gray-300 rounded-2xl p-5 text-black font-black outline-none" value={settings.appName} onChange={(e) => setSettings({ ...settings, appName: e.target.value })} />
             </div>
-            <button onClick={() => { storageService.saveSettings(settings); triggerToast('تم حفظ الإعدادات محلياً'); }} className="bg-[#1e3a8a] text-white px-12 py-5 rounded-2xl font-black shadow-xl hover:bg-blue-800 transition-all text-xl">حفظ الإعدادات في المتصفح</button>
-          </div>
-
-          <div className="bg-amber-50 p-10 rounded-[32px] border-2 border-amber-200 space-y-6">
-            <div className="flex items-center gap-4 text-amber-800">
-              <Download size={32} />
-              <h2 className="text-2xl font-black">نشر الموقع (GitHub / Vercel)</h2>
+            <div className="space-y-3">
+              <label className="text-lg font-black block">نص الترحيب الرئيسي</label>
+              <textarea rows={3} className="w-full bg-gray-50 border border-gray-300 rounded-2xl p-5 text-black font-black outline-none" value={settings.heroSubtitle} onChange={(e) => setSettings({ ...settings, heroSubtitle: e.target.value })} />
             </div>
-            <p className="text-amber-900 font-bold text-lg">
-              لكي يرى الآخرون المنشورات الجديدة، يجب عليك تصدير البيانات ورفع الملف إلى GitHub.
-            </p>
-            <button
-              onClick={() => storageService.exportFullData()}
-              className="bg-amber-600 text-white px-10 py-5 rounded-2xl font-black shadow-lg hover:bg-amber-700 transition-all flex items-center gap-3 text-xl"
-            >
-              <Download size={24} /> تحميل ملف site_data.json للنشر
-            </button>
           </div>
+          <button onClick={() => { storageService.saveSettings(settings); triggerToast('تم حفظ الإعدادات'); }} className="bg-[#1e3a8a] text-white px-12 py-5 rounded-2xl font-black shadow-xl hover:bg-blue-800 transition-all text-xl">حفظ التغييرات</button>
         </div>
       )}
 
@@ -283,8 +295,14 @@ const Admin: React.FC = () => {
             </div>
 
             <div className="p-6 bg-gray-50 border-t flex gap-4">
-              <button onClick={handleSaveContent} className="flex-1 bg-green-600 text-white py-4 rounded-2xl font-black shadow-lg flex items-center justify-center gap-2"><Save size={20} /> حفظ التعديل</button>
-              <button onClick={() => setEditingItem(null)} className="px-10 bg-white text-gray-500 border border-gray-200 rounded-2xl font-black">إلغاء</button>
+              <button
+                onClick={handleSaveContent}
+                disabled={isLoading}
+                className="flex-1 bg-green-600 text-white py-4 rounded-2xl font-black shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? <><Loader size={20} className="animate-spin" /> جاري الحفظ...</> : <><Save size={20} /> حفظ التعديل</>}
+              </button>
+              <button onClick={() => setEditingItem(null)} disabled={isLoading} className="px-10 bg-white text-gray-500 border border-gray-200 rounded-2xl font-black disabled:opacity-50">إلغاء</button>
             </div>
           </div>
         </div>
