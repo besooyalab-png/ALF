@@ -26,17 +26,46 @@ const DEFAULT_SETTINGS: PlatformSettings = {
   vision: 'أن نكون منصة قانونية موثوقة ومؤثرة على مستوى جمهورية مصر العربية.',
   mission: 'تبسيط القانون ونشر العلم القانوني الصحيح لخدمة المجتمع ودعم العدالة.',
   phone: '01108816044',
-  whatsapp: '201108816044', 
+  whatsapp: '201108816044',
   email: 'info@alf-legal.com',
   address: 'عن بعد / أونلاين',
   primaryColor: '#1e3a8a'
 };
 
+
 export const storageService = {
-  // جلب المحتوى مع إمكانية الدمج من ملف خارجي إذا وجد (للمزامنة العالمية)
+  // الحالة الداخلية للبيانات المحملة من السيرفر
+  _baseData: { content: [] as LegalContent[], settings: DEFAULT_SETTINGS },
+
+  // دالة التهيئة: جلب البيانات من ملف site_data.json عند تشغيل الموقع
+  initialize: async () => {
+    try {
+      const response = await fetch('./site_data.json');
+      if (response.ok) {
+        const data = await response.json();
+        storageService._baseData = data;
+        console.log("Global data loaded successfully");
+      }
+    } catch (e) {
+      console.error("Failed to load global data", e);
+    }
+  },
+
   getContent: (): LegalContent[] => {
     const localData = localStorage.getItem(CONTENT_KEY);
-    return localData ? JSON.parse(localData) : [];
+    const localContent = localData ? JSON.parse(localData) : [];
+
+    // دمج البيانات: أولاً بيانات السيرفر (العالمية) ثم البيانات المحلية للمستخدم
+    // نستخدم Map لضمان عدم تكرار العناصر بناءً على id
+    const allContent = new Map();
+
+    // إضافة بيانات السيرفر أولاً
+    storageService._baseData.content.forEach(item => allContent.set(item.id, item));
+
+    // إضافة/تحديث بالبيانات المحلية (تأخذ الأولوية إذا تشابه الـ id)
+    localContent.forEach((item: LegalContent) => allContent.set(item.id, item));
+
+    return Array.from(allContent.values());
   },
 
   saveContent: (content: LegalContent[]) => {
@@ -44,14 +73,15 @@ export const storageService = {
   },
 
   getSettings: (): PlatformSettings => {
-    const data = localStorage.getItem(SETTINGS_KEY);
-    if (!data) return DEFAULT_SETTINGS;
-    try {
-      const parsed = JSON.parse(data);
-      return { ...DEFAULT_SETTINGS, ...parsed };
-    } catch {
-      return DEFAULT_SETTINGS;
-    }
+    const localData = localStorage.getItem(SETTINGS_KEY);
+    const localSettings = localData ? JSON.parse(localData) : {};
+
+    // دمج الإعدادات: الافتراضية < السيرفر < المحلية
+    return {
+      ...DEFAULT_SETTINGS,
+      ...storageService._baseData.settings,
+      ...localSettings
+    };
   },
 
   saveSettings: (settings: PlatformSettings) => {
@@ -70,9 +100,10 @@ export const storageService = {
     link.href = url;
     link.download = 'site_data.json';
     link.click();
+
+    alert("تم تصدير ملف site_data.json بنجاح.\nيرجى رفعه إلى GitHub وتحديث مجلد public/ لتظهر المنشورات للجميع.");
   },
 
-  // دالة لاستيراد البيانات (تستخدم عند تحديث الموقع من قبل الأدمن)
   importFullData: (jsonData: string) => {
     try {
       const parsed = JSON.parse(jsonData);
