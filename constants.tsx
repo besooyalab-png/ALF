@@ -13,4 +13,4 @@ export const COLORS = {
 export const APP_LOGO = "https://raw.githubusercontent.com/username/repo/main/logo.png"; 
 
 // بيانات افتراضية تظهر للمستخدمين عند أول فتح للموقع
-export const INITIAL_DATA: LegalContent[] = [];
+export const INITIAL_DATA: export const INITIAL_DATA: LegalContent[] = [];
